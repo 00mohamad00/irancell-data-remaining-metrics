@@ -1,10 +1,7 @@
-import logging
 from typing import Dict, Tuple
-from prometheus_client import Gauge
 from request import request_endpoint
+from src.metrics import DATA_GAUGE
 
-DATA_GAUGE = Gauge('irancell_data_remaining', 'Status of Irancell data remaining and total',
-                   ["type"])
 ENDPOINT_URL = "https://my.irancell.ir/api/sim/v2/account"
 
 
