@@ -1,28 +1,21 @@
-from typing import Dict
-import requests
+import logging
+from typing import Dict, Tuple
 from prometheus_client import Gauge
+from request import request_endpoint
 
 DATA_GAUGE = Gauge('irancell_data_remaining', 'Status of Irancell data remaining and total',
                    ["type"])
 ENDPOINT_URL = "https://my.irancell.ir/api/sim/v2/account"
 
 
-def request_endpoint(url, params=None, headers=None) -> Dict:
-    try:
-        res = requests.get(url, params=params, headers=headers)
-        res.raise_for_status()
-        return res.json()
-    except requests.exceptions.RequestException as e:
-        print("Error occurred: ", e)
-
-
-def get_data_stats(irancell_authorization_token: str):
-    headers = {
+def get_header(irancell_authorization_token: str) -> Dict:
+    return {
         "accept": "application/json",
         "authorization": irancell_authorization_token,
     }
-    response = request_endpoint(ENDPOINT_URL, headers=headers)
 
+
+def parse_response(response: Dict) -> Tuple[int, int]:
     total = 0
     remained = 0
     for offer in response.get('active_offers'):
@@ -30,6 +23,11 @@ def get_data_stats(irancell_authorization_token: str):
             continue
         total += int(offer.get('total_amount'))
         remained += int(offer.get('remained_amount'))
+    return total, remained
 
+
+def update_data_stats(irancell_authorization_token: str):
+    response = request_endpoint(ENDPOINT_URL, headers=get_header(irancell_authorization_token))
+    total, remained = parse_response(response)
     DATA_GAUGE.labels(type="remained").set(remained)
     DATA_GAUGE.labels(type="total").set(total)
